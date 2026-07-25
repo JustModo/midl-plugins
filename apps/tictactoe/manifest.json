@@ -2,7 +2,11 @@
   "id": "tictactoe",
   "name": "Tic-Tac-Toe",
   "version": "1.0.0",
+  "minSdkVersion": "1.0.0",
   "author": "JustModo",
   "description": "2-Player Tic-Tac-Toe game with score tracking and match victory (First to 3 wins)",
-  "tags": ["game", "multiplayer"]
+  "tags": [
+    "game",
+    "multiplayer"
+  ]
 }

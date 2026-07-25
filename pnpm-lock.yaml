@@ -10,7 +10,7 @@ importers:
     devDependencies:
       midl:
         specifier: github:JustModo/midl#path:sdk
-        version: https://codeload.github.com/JustModo/midl/tar.gz/741e735f51cad7694788cb22d8dd0962dd68e16b#path:sdk
+        version: https://codeload.github.com/JustModo/midl/tar.gz/4ce505722a9d1059f166a993963a51a5a665044a#path:sdk
       turbo:
         specifier: latest
         version: 2.10.6
@@ -51,9 +51,9 @@ packages:
     cpu: [arm64]
     os: [win32]
 
-  midl@https://codeload.github.com/JustModo/midl/tar.gz/741e735f51cad7694788cb22d8dd0962dd68e16b#path:sdk:
-    resolution: {gitHosted: true, integrity: sha512-RLAMeQUkxfTXpZNnMUn5Pygjw2kJXW4ZSoJmlRQ9moR/VrQvQY73gpCAByoGFO2w0PRKlFhgZUHhrVXHmYq1Fg==, tarball: https://codeload.github.com/JustModo/midl/tar.gz/741e735f51cad7694788cb22d8dd0962dd68e16b}
-    version: 0.0.1
+  midl@https://codeload.github.com/JustModo/midl/tar.gz/4ce505722a9d1059f166a993963a51a5a665044a#path:sdk:
+    resolution: {gitHosted: true, integrity: sha512-IRP6MSepuW1x06osIHPU0iTCZmFhph2v/ERBlMCs0AtJuPe8eS9i7BoZtJBNiY6LZWmAch311hSEAebKNfdJNA==, tarball: https://codeload.github.com/JustModo/midl/tar.gz/4ce505722a9d1059f166a993963a51a5a665044a}
+    version: 1.0.0
     hasBin: true
 
   turbo@2.10.6:
@@ -80,7 +80,7 @@ snapshots:
   '@turbo/windows-arm64@2.10.6':
     optional: true
 
-  midl@https://codeload.github.com/JustModo/midl/tar.gz/741e735f51cad7694788cb22d8dd0962dd68e16b#path:sdk: {}
+  midl@https://codeload.github.com/JustModo/midl/tar.gz/4ce505722a9d1059f166a993963a51a5a665044a#path:sdk: {}
 
   turbo@2.10.6:
     optionalDependencies:

@@ -2,7 +2,11 @@
   "id": "echo",
   "name": "Echo Server",
   "version": "1.0.0",
+  "minSdkVersion": "1.0.0",
   "author": "Midl",
   "description": "Simple WebSocket echo server with connect and disconnect logs",
-  "tags": ["utility", "demo"]
+  "tags": [
+    "utility",
+    "demo"
+  ]
 }

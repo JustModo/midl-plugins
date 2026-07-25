@@ -110,12 +110,16 @@ function zipDir(srcDir, destZip) {
     );
 }
 
+const SEMVER_REGEX = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
+const SDK_VERSION_REGEX = /^(?:[~^>=<]*)\s*(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[\w.]+)?(?:\+[\w.]+)?$/;
+
 /**
  * Validates a plugin's manifest.json against required system schema rules:
- * Required: id, name, version, author
+ * Required: id, name, version (valid SemVer), minSdkVersion / sdkVersion, author
+ * Optional: package.json sync check if present
  * Forbidden: source (must be removed from manifest.json)
  */
-function validateManifest(manifest, appName) {
+function validateManifest(manifest, appName, appDir) {
     const errors = [];
 
     if (!manifest) {
@@ -133,6 +137,15 @@ function validateManifest(manifest, appName) {
 
     if (!manifest.version || typeof manifest.version !== 'string' || !manifest.version.trim()) {
         errors.push(`apps/${appName}/manifest.json must specify a non-empty string "version"`);
+    } else if (!SEMVER_REGEX.test(manifest.version.trim())) {
+        errors.push(`apps/${appName}/manifest.json "version" ("${manifest.version}") is not a valid Semantic Version (e.g. 1.0.0)`);
+    }
+
+    const sdkVersionStr = manifest.minSdkVersion || manifest.sdkVersion;
+    if (!sdkVersionStr || typeof sdkVersionStr !== 'string' || !sdkVersionStr.trim()) {
+        errors.push(`apps/${appName}/manifest.json must specify a non-empty "minSdkVersion" (or "sdkVersion") e.g. "1.0.0" or ">=1.0.0"`);
+    } else if (!SDK_VERSION_REGEX.test(sdkVersionStr.trim())) {
+        errors.push(`apps/${appName}/manifest.json "minSdkVersion" ("${sdkVersionStr}") must be a valid version or range (e.g. 1.0.0, >=1.0.0)`);
     }
 
     if (!manifest.author || (typeof manifest.author !== 'string' && typeof manifest.author !== 'object')) {
@@ -141,6 +154,18 @@ function validateManifest(manifest, appName) {
 
     if ('source' in manifest) {
         errors.push(`apps/${appName}/manifest.json must NOT contain forbidden "source" property (source origin is tracked by repository index)`);
+    }
+
+    if (appDir) {
+        const appPkgPath = join(appDir, 'package.json');
+        if (existsSync(appPkgPath)) {
+            const appPkg = readJsonFile(appPkgPath);
+            if (appPkg && appPkg.version && appPkg.version.trim() !== manifest.version.trim()) {
+                errors.push(
+                    `apps/${appName}/package.json version ("${appPkg.version}") does not match manifest.json version ("${manifest.version}")`
+                );
+            }
+        }
     }
 
     return errors;
@@ -211,7 +236,7 @@ for (const appName of appDirs) {
         continue;
     }
 
-    const validationErrors = validateManifest(manifest, appName);
+    const validationErrors = validateManifest(manifest, appName, appDir);
     if (validationErrors.length > 0) {
         validationErrors.forEach((err) => logError(err));
         hasValidationFailures = true;
@@ -221,6 +246,7 @@ for (const appName of appDirs) {
     const id = manifest.id.trim();
     const name = manifest.name.trim();
     const version = manifest.version.trim();
+    const minSdkVersion = (manifest.minSdkVersion || manifest.sdkVersion || '').trim();
     const description = manifest.description || '';
     const rawAuthor = manifest.author;
     const author = typeof rawAuthor === 'object' && rawAuthor !== null ? (rawAuthor.name || '') : String(rawAuthor).trim();
@@ -240,6 +266,7 @@ for (const appName of appDirs) {
             id,
             name,
             version,
+            minSdkVersion,
             author,
             zipUrl: existingEntry.zipUrl,
         };
@@ -285,6 +312,7 @@ for (const appName of appDirs) {
         id,
         name,
         version,
+        minSdkVersion,
         author,
         zipUrl,
     };
