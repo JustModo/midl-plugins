@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Per-app dist folders
+apps/*/dist/
+
+# Packaging zips
+zips/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Turbo cache
+.turbo/
+
+# Local env files
+.env
+.env.local

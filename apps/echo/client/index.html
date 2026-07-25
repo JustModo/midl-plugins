@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echo Server Client</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 540px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #222222;
+            padding-bottom: 16px;
+        }
+
+        .title {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #888888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #444444;
+        }
+
+        .status-dot.connected {
+            background-color: #0070F3;
+        }
+
+        .log-box {
+            height: 320px;
+            background-color: #0a0a0a;
+            border: 1px solid #222222;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 13px;
+        }
+
+        .log-entry {
+            line-height: 1.4;
+            word-break: break-all;
+        }
+
+        .log-entry.system {
+            color: #666666;
+        }
+
+        .log-entry.sent {
+            color: #888888;
+        }
+
+        .log-entry.received {
+            color: #0070F3;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background-color: #0a0a0a;
+            border: 1px solid #222222;
+            color: #ffffff;
+            padding: 12px 16px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        input[type="text"]:focus {
+            border-color: #0070F3;
+        }
+
+        button {
+            background-color: transparent;
+            border: 1px solid #0070F3;
+            color: #0070F3;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            outline: none;
+        }
+
+        button:active {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title">ECHO CLIENT</div>
+            <div class="status">
+                <div id="statusDot" class="status-dot"></div>
+                <span id="statusText">DISCONNECTED</span>
+            </div>
+        </div>
+
+        <div id="logBox" class="log-box">
+            <div class="log-entry system">[System] Initializing connection...</div>
+        </div>
+
+        <div class="input-row">
+            <input type="text" id="messageInput" placeholder="Type a message to echo..." autofocus>
+            <button id="sendBtn">SEND</button>
+        </div>
+    </div>
+
+    <script>
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const logBox = document.getElementById('logBox');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
+
+        let socket = null;
+
+        function addLog(text, type = 'system') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = text;
+            logBox.appendChild(entry);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        function connect() {
+            socket = new WebSocket(wsUrl);
+
+            socket.onopen = () => {
+                statusDot.classList.add('connected');
+                statusText.textContent = 'CONNECTED';
+                statusText.style.color = '#0070F3';
+                addLog('[System] WebSocket Connected to ' + wsUrl, 'system');
+            };
+
+            socket.onmessage = (event) => {
+                addLog(`[Server]: ${event.data}`, 'received');
+            };
+
+            socket.onclose = () => {
+                statusDot.classList.remove('connected');
+                statusText.textContent = 'DISCONNECTED';
+                statusText.style.color = '#888888';
+                addLog('[System] Connection closed. Retrying in 3s...', 'system');
+                setTimeout(connect, 3000);
+            };
+
+            socket.onerror = (err) => {
+                addLog('[System] WebSocket Error', 'system');
+            };
+        }
+
+        function sendMessage() {
+            const msg = messageInput.value.trim();
+            if (msg && socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(msg);
+                addLog(`[You]: ${msg}`, 'sent');
+                messageInput.value = '';
+            }
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        connect();
+    </script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+name: Release Plugins
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_all:
+        description: 'Force repackage all plugins regardless of version changes'
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  release:
+    name: Package & Release Plugins
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Package Plugins
+        id: package
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          # Generate date-based release tag (e.g. v2026.07.25)
+          RELEASE_TAG="v$(date +'%Y.%m.%d')"
+          echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_ENV
+
+          FLAGS=""
+          if [ "${{ inputs.force_all }}" = "true" ]; then
+            FLAGS="--force"
+          fi
+
+          RELEASE_TAG="$RELEASE_TAG" pnpm package $FLAGS
+
+      - name: Create or Update GitHub Release & Upload Zip Assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
+        run: |
+          # Check if any zip files exist in zips/ directory
+          shopt -s nullglob
+          zips=(zips/*.zip)
+          if [ ${#zips[@]} -eq 0 ]; then
+            echo "No zip files were generated (no plugin versions changed)."
+            echo "HAS_ZIPS=false" >> $GITHUB_ENV
+          else
+            echo "Found ${#zips[@]} zip file(s) to upload:"
+            printf ' - %s\n' "${zips[@]}"
+            echo "HAS_ZIPS=true" >> $GITHUB_ENV
+
+            # Check if GitHub Release for this tag exists
+            if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+              echo "Release $RELEASE_TAG already exists. Uploading/updating assets..."
+              gh release upload "$RELEASE_TAG" "${zips[@]}" --clobber
+            else
+              echo "Creating new release $RELEASE_TAG..."
+              gh release create "$RELEASE_TAG" "${zips[@]}" \
+                --title "Plugins Release $RELEASE_TAG" \
+                --notes "Automated release of updated plugins."
+            fi
+          fi
+
+      - name: Commit & Push Updated Index
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(release): update index.json & index.min.json [skip ci]"
+          file_pattern: "index.json index.min.json"

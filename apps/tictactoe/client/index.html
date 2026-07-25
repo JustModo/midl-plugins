@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe - Midl Server</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 440px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #222222;
+            padding-bottom: 16px;
+        }
+
+        .title {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .target-rule {
+            font-size: 11px;
+            color: #888888;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .role-badge {
+            font-size: 12px;
+            font-weight: 700;
+            color: #0070F3;
+            background-color: #0070F31a;
+            border: 1px solid #0070F3;
+            padding: 6px 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: center;
+        }
+
+        .join-box {
+            background-color: #0a0a0a;
+            border: 1px solid #222222;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .join-box h3 {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background-color: #000000;
+            border: 1px solid #222222;
+            color: #ffffff;
+            padding: 12px 16px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        input[type="text"]:focus {
+            border-color: #0070F3;
+        }
+
+        .btn {
+            background-color: transparent;
+            border: 1px solid #0070F3;
+            color: #0070F3;
+            padding: 12px 20px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            outline: none;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn:hover {
+            background-color: #0070F3;
+            color: #ffffff;
+        }
+
+        .btn:active {
+            opacity: 0.8;
+        }
+
+        .btn.secondary {
+            border-color: #333333;
+            color: #888888;
+        }
+
+        .btn.secondary:hover {
+            background-color: #222222;
+            color: #ffffff;
+        }
+
+        .scoreboard {
+            display: flex;
+            justify-content: space-between;
+            background-color: #0a0a0a;
+            border: 1px solid #222222;
+            padding: 16px;
+        }
+
+        .player-card {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .player-name {
+            font-size: 13px;
+            color: #888888;
+            font-weight: 600;
+        }
+
+        .player-name.active {
+            color: #0070F3;
+        }
+
+        .player-score {
+            font-size: 28px;
+            font-weight: 700;
+            font-family: ui-monospace, monospace;
+        }
+
+        .status-banner {
+            background-color: #0a0a0a;
+            border: 1px solid #222222;
+            padding: 12px 16px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: #888888;
+            text-transform: uppercase;
+        }
+
+        .status-banner.your-turn {
+            border-color: #0070F3;
+            background-color: #0070F31a;
+            color: #0070F3;
+        }
+
+        .status-banner.winner {
+            border-color: #0070F3;
+            background-color: #0070F3;
+            color: #ffffff;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            background-color: #0a0a0a;
+            border: 1px solid #222222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+            font-weight: 800;
+            font-family: ui-monospace, monospace;
+            cursor: pointer;
+            user-select: none;
+            transition: border-color 0.15s ease;
+        }
+
+        .cell:hover:not(.disabled) {
+            border-color: #0070F3;
+        }
+
+        .cell.x {
+            color: #ffffff;
+        }
+
+        .cell.o {
+            color: #0070F3;
+        }
+
+        .cell.disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title">TIC-TAC-TOE</div>
+            <div class="target-rule">FIRST TO 3 WINS</div>
+        </div>
+
+        <!-- Join / Lobby Screen -->
+        <div id="joinBox" class="join-box">
+            <h3>ENTER YOUR NAME TO JOIN MATCH</h3>
+            <div class="input-row">
+                <input type="text" id="nameInput" placeholder="Enter Name..." maxlength="15" autofocus>
+                <button id="joinBtn" class="btn">JOIN</button>
+            </div>
+        </div>
+
+        <!-- Role Badge -->
+        <div id="roleBadge" class="role-badge hidden">YOU ARE SPECTATING</div>
+
+        <!-- Main Game Area -->
+        <div id="gameArea" class="hidden">
+            <div class="scoreboard">
+                <div class="player-card">
+                    <div id="playerXName" class="player-name">PLAYER X</div>
+                    <div id="playerXScore" class="player-score">0</div>
+                </div>
+                <div class="player-card" style="align-items: flex-end;">
+                    <div id="playerOName" class="player-name">PLAYER O</div>
+                    <div id="playerOScore" class="player-score">0</div>
+                </div>
+            </div>
+
+            <div id="statusBanner" class="status-banner">CONNECTING...</div>
+
+            <div id="board" class="board">
+                <div class="cell" data-index="0"></div>
+                <div class="cell" data-index="1"></div>
+                <div class="cell" data-index="2"></div>
+                <div class="cell" data-index="3"></div>
+                <div class="cell" data-index="4"></div>
+                <div class="cell" data-index="5"></div>
+                <div class="cell" data-index="6"></div>
+                <div class="cell" data-index="7"></div>
+                <div class="cell" data-index="8"></div>
+            </div>
+
+            <div id="controls" class="controls hidden">
+                <button id="nextRoundBtn" class="btn" style="flex: 1;">NEXT ROUND</button>
+                <button id="resetMatchBtn" class="btn secondary">NEW MATCH</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
+
+        let socket = null;
+        let currentState = null;
+        let myClientId = null;
+        let mySymbol = null;
+
+        const joinBox = document.getElementById('joinBox');
+        const nameInput = document.getElementById('nameInput');
+        const joinBtn = document.getElementById('joinBtn');
+        const roleBadge = document.getElementById('roleBadge');
+
+        const gameArea = document.getElementById('gameArea');
+        const playerXName = document.getElementById('playerXName');
+        const playerXScore = document.getElementById('playerXScore');
+        const playerOName = document.getElementById('playerOName');
+        const playerOScore = document.getElementById('playerOScore');
+
+        const statusBanner = document.getElementById('statusBanner');
+        const boardEl = document.getElementById('board');
+        const cells = document.querySelectorAll('.cell');
+        const controls = document.getElementById('controls');
+        const nextRoundBtn = document.getElementById('nextRoundBtn');
+        const resetMatchBtn = document.getElementById('resetMatchBtn');
+
+        function connect() {
+            socket = new WebSocket(wsUrl);
+
+            socket.onopen = () => {
+                console.log('Connected to WebSocket server');
+            };
+
+            socket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'init') {
+                        myClientId = data.clientId;
+                        currentState = data.state;
+                        checkMySymbol();
+                        render();
+                    } else if (data.type === 'joined') {
+                        mySymbol = data.symbol;
+                        render();
+                    } else if (data.type === 'state_update') {
+                        currentState = data.state;
+                        checkMySymbol();
+                        render();
+                    }
+                } catch (e) {
+                    console.error('Error parsing message:', e);
+                }
+            };
+
+            socket.onclose = () => {
+                setTimeout(connect, 3000);
+            };
+        }
+
+        function checkMySymbol() {
+            if (!currentState || !currentState.players || !myClientId) return;
+            if (currentState.players.X && currentState.players.X.id === myClientId) {
+                mySymbol = 'X';
+            } else if (currentState.players.O && currentState.players.O.id === myClientId) {
+                mySymbol = 'O';
+            } else {
+                mySymbol = null;
+            }
+        }
+
+        function render() {
+            if (!currentState) return;
+
+            const players = currentState.players || { X: null, O: null };
+            const scores = currentState.scores || { X: 0, O: 0 };
+            const board = currentState.board || Array(9).fill(null);
+            const status = currentState.status || 'waiting';
+
+            const isJoined = mySymbol !== null;
+            const slotsFull = players.X && players.O;
+
+            if (isJoined) {
+                joinBox.classList.add('hidden');
+                gameArea.classList.remove('hidden');
+                roleBadge.classList.remove('hidden');
+                const myName = (mySymbol === 'X' && players.X) ? players.X.name : ((mySymbol === 'O' && players.O) ? players.O.name : (mySymbol || ''));
+                roleBadge.textContent = `YOU ARE PLAYING AS '${mySymbol}' (${myName})`;
+            } else if (slotsFull) {
+                joinBox.classList.add('hidden');
+                gameArea.classList.remove('hidden');
+                roleBadge.classList.remove('hidden');
+                roleBadge.textContent = `SPECTATING MATCH`;
+            } else {
+                joinBox.classList.remove('hidden');
+                gameArea.classList.remove('hidden');
+                roleBadge.classList.add('hidden');
+            }
+
+            // Render Scoreboard
+            playerXName.textContent = (players.X ? players.X.name : 'WAITING...') + ' (X)';
+            playerXName.className = `player-name ${currentState.currentTurn === 'X' && status === 'playing' ? 'active' : ''}`;
+            playerXScore.textContent = scores.X;
+
+            playerOName.textContent = (players.O ? players.O.name : 'WAITING...') + ' (O)';
+            playerOName.className = `player-name ${currentState.currentTurn === 'O' && status === 'playing' ? 'active' : ''}`;
+            playerOScore.textContent = scores.O;
+
+            // Render Status Banner
+            statusBanner.className = 'status-banner';
+            if (status === 'waiting') {
+                statusBanner.textContent = 'WAITING FOR BOTH PLAYERS TO JOIN...';
+            } else if (status === 'playing') {
+                if (isJoined && currentState.currentTurn === mySymbol) {
+                    statusBanner.classList.add('your-turn');
+                    statusBanner.textContent = `⚡ YOUR TURN (${mySymbol})`;
+                } else {
+                    const turnName = currentState.currentTurn === 'X' ? 
+                        (players.X ? players.X.name : 'X') : 
+                        (players.O ? players.O.name : 'O');
+                    statusBanner.textContent = `TURN: ${turnName} (${currentState.currentTurn})`;
+                }
+            } else if (status === 'round_over') {
+                statusBanner.classList.add('winner');
+                if (currentState.roundWinner === 'draw') {
+                    statusBanner.textContent = 'ROUND DRAW!';
+                } else {
+                    const winnerName = currentState.roundWinner === 'X' ? players.X.name : players.O.name;
+                    statusBanner.textContent = `${winnerName} WON THE ROUND!`;
+                }
+            } else if (status === 'match_over') {
+                statusBanner.classList.add('winner');
+                const winnerName = currentState.matchWinner === 'X' ? players.X.name : players.O.name;
+                statusBanner.textContent = `🏆 ${winnerName} WINS THE MATCH!`;
+            }
+
+            // Render Grid
+            const isMyTurn = isJoined && status === 'playing' && currentState.currentTurn === mySymbol;
+            cells.forEach((cell, idx) => {
+                const val = board[idx];
+                cell.textContent = val || '';
+                cell.className = 'cell';
+                if (val === 'X') cell.classList.add('x');
+                if (val === 'O') cell.classList.add('o');
+
+                if (!isMyTurn || val !== null) {
+                    cell.classList.add('disabled');
+                }
+            });
+
+            // Render Controls
+            if (status === 'round_over') {
+                controls.classList.remove('hidden');
+                nextRoundBtn.classList.remove('hidden');
+            } else if (status === 'match_over') {
+                controls.classList.remove('hidden');
+                nextRoundBtn.classList.add('hidden');
+            } else {
+                controls.classList.add('hidden');
+            }
+        }
+
+        // Actions
+        function doJoin() {
+            const name = nameInput.value.trim();
+            if (name && socket && socket.readyState === WebSocket.OPEN) {
+                console.log('Sending join action:', name);
+                socket.send(JSON.stringify({
+                    action: 'join',
+                    name: name
+                }));
+            }
+        }
+
+        joinBtn.addEventListener('click', doJoin);
+
+        nameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                doJoin();
+            }
+        });
+
+        cells.forEach(cell => {
+            cell.addEventListener('click', () => {
+                const index = parseInt(cell.getAttribute('data-index'), 10);
+                if (mySymbol && currentState && currentState.status === 'playing' && currentState.currentTurn === mySymbol && socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        action: 'move',
+                        index: index
+                    }));
+                }
+            });
+        });
+
+        nextRoundBtn.addEventListener('click', () => {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ action: 'next_round' }));
+            }
+        });
+
+        resetMatchBtn.addEventListener('click', () => {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ action: 'reset_match' }));
+            }
+        });
+
+        connect();
+    </script>
+</body>
+</html>
