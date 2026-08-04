@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       midl:
-        specifier: github:JustModo/midl#path:sdk
-        version: https://codeload.github.com/JustModo/midl/tar.gz/4ce505722a9d1059f166a993963a51a5a665044a#path:sdk
+        specifier: https://github.com/JustModo/midl/releases/download/v1.0.0/midl-sdk-v1.0.0.tgz
+        version: https://github.com/JustModo/midl/releases/download/v1.0.0/midl-sdk-v1.0.0.tgz
       turbo:
         specifier: 2.10.6
         version: 2.10.6
@@ -51,8 +51,8 @@ packages:
     cpu: [arm64]
     os: [win32]
 
-  midl@https://codeload.github.com/JustModo/midl/tar.gz/4ce505722a9d1059f166a993963a51a5a665044a#path:sdk:
-    resolution: {gitHosted: true, integrity: sha512-IRP6MSepuW1x06osIHPU0iTCZmFhph2v/ERBlMCs0AtJuPe8eS9i7BoZtJBNiY6LZWmAch311hSEAebKNfdJNA==, tarball: https://codeload.github.com/JustModo/midl/tar.gz/4ce505722a9d1059f166a993963a51a5a665044a}
+  midl@https://github.com/JustModo/midl/releases/download/v1.0.0/midl-sdk-v1.0.0.tgz:
+    resolution: {integrity: sha512-eLNBCe17NZj69W3AH8TF0p4WdjZl/Rk9vF2Vqm0BskrPRMK+Aw9oSrBd3Sh8nzhvDdrBWxLJkz58kapY8TYHDQ==, tarball: https://github.com/JustModo/midl/releases/download/v1.0.0/midl-sdk-v1.0.0.tgz}
     version: 1.0.0
     hasBin: true
 
@@ -80,7 +80,7 @@ snapshots:
   '@turbo/windows-arm64@2.10.6':
     optional: true
 
-  midl@https://codeload.github.com/JustModo/midl/tar.gz/4ce505722a9d1059f166a993963a51a5a665044a#path:sdk: {}
+  midl@https://github.com/JustModo/midl/releases/download/v1.0.0/midl-sdk-v1.0.0.tgz: {}
 
   turbo@2.10.6:
     optionalDependencies:
