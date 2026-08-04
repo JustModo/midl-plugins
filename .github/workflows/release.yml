@@ -9,6 +9,10 @@ on:
         required: false
         default: false
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     name: Package & Release Plugins
@@ -29,7 +33,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'pnpm'
 
       - name: Install Dependencies
@@ -77,13 +81,13 @@ jobs:
             else
               echo "Creating new release $RELEASE_TAG..."
               gh release create "$RELEASE_TAG" "${zips[@]}" \
-                --title "Plugins Release $RELEASE_TAG" \
-                --notes "Automated release of updated plugins."
+                --title "$RELEASE_TAG" \
+                --notes "Official release of updated Midl plugins for release tag **\`$RELEASE_TAG\`**."
             fi
           fi
 
       - name: Commit & Push Updated Index
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore(release): update index.json & index.min.json [skip ci]"
+          commit_message: "chore(release): update index.json & index.min.json for release tag ${{ env.RELEASE_TAG }} [skip ci]"
           file_pattern: "index.json index.min.json"

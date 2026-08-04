@@ -12,7 +12,7 @@ importers:
         specifier: github:JustModo/midl#path:sdk
         version: https://codeload.github.com/JustModo/midl/tar.gz/4ce505722a9d1059f166a993963a51a5a665044a#path:sdk
       turbo:
-        specifier: latest
+        specifier: 2.10.6
         version: 2.10.6
 
   apps/echo: {}

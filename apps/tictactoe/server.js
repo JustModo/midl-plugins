@@ -57,36 +57,17 @@ function resetRound() {
     broadcastState();
 }
 
-socket.on('connect', (client) => {
-    console.log(`[Tic-Tac-Toe] Client connected: ${client.id}`);
-    socket.join(client.id, 'tictactoe');
-    socket.send(client.id, {
-        type: 'init',
-        clientId: client.id,
-        state: gameState
-    });
-});
+function isPlayer(clientId) {
+    return (gameState.players.X && gameState.players.X.id === clientId) ||
+           (gameState.players.O && gameState.players.O.id === clientId);
+}
 
-socket.on('disconnect', (client) => {
-    console.log(`[Tic-Tac-Toe] Client disconnected: ${client.id}`);
-    let playerLeft = false;
-    if (gameState.players.X && gameState.players.X.id === client.id) {
-        gameState.players.X = null;
-        playerLeft = true;
-    }
-    if (gameState.players.O && gameState.players.O.id === client.id) {
-        gameState.players.O = null;
-        playerLeft = true;
-    }
-
-    if (playerLeft) {
-        resetMatch();
-    }
-});
-
-socket.on('join', (client, payload) => {
+function handleJoin(client, payload) {
     console.log(`[Tic-Tac-Toe] Join action from ${client.id}`, JSON.stringify(payload));
-    const playerName = (payload && payload.name && payload.name.trim()) ? payload.name.trim() : `Player ${client.id.substring(0, 4)}`;
+    let playerName = `Player ${client.id.substring(0, 4)}`;
+    if (payload && typeof payload.name === 'string' && payload.name.trim()) {
+        playerName = payload.name.trim().substring(0, 15);
+    }
     let assignedSymbol = null;
 
     if (gameState.players.X && gameState.players.X.id === client.id) {
@@ -116,9 +97,9 @@ socket.on('join', (client, payload) => {
         }
     }
     broadcastState();
-});
+}
 
-socket.on('move', (client, payload) => {
+function handleMove(client, payload) {
     if (gameState.status !== 'playing') return;
 
     const activePlayer = gameState.players[gameState.currentTurn];
@@ -150,14 +131,65 @@ socket.on('move', (client, payload) => {
         gameState.currentTurn = gameState.currentTurn === 'X' ? 'O' : 'X';
     }
     broadcastState();
+}
+
+function handleNextRound(client) {
+    if (gameState.status === 'round_over' && isPlayer(client.id)) {
+        resetRound();
+    }
+}
+
+function handleResetMatch(client) {
+    if (isPlayer(client.id)) {
+        resetMatch();
+    }
+}
+
+socket.on('connect', (client) => {
+    console.log(`[Tic-Tac-Toe] Client connected: ${client.id}`);
+    socket.join(client.id, 'tictactoe');
+    socket.send(client.id, {
+        type: 'init',
+        clientId: client.id,
+        state: gameState
+    });
 });
 
-socket.on('next_round', () => {
-    if (gameState.status === 'round_over') {
-        resetRound();
+socket.on('disconnect', (client) => {
+    console.log(`[Tic-Tac-Toe] Client disconnected: ${client.id}`);
+    let playerLeft = false;
+    if (gameState.players.X && gameState.players.X.id === client.id) {
+        gameState.players.X = null;
+        playerLeft = true;
+    }
+    if (gameState.players.O && gameState.players.O.id === client.id) {
+        gameState.players.O = null;
+        playerLeft = true;
+    }
+
+    if (playerLeft) {
+        resetMatch();
     }
 });
 
-socket.on('reset_match', () => {
-    resetMatch();
+socket.on('join', (client, payload) => handleJoin(client, payload));
+socket.on('move', (client, payload) => handleMove(client, payload));
+socket.on('next_round', (client) => handleNextRound(client));
+socket.on('reset_match', (client) => handleResetMatch(client));
+
+socket.on('message', (client, message) => {
+    let data = message;
+    if (typeof message === 'string') {
+        try {
+            data = JSON.parse(message);
+        } catch (e) {
+            return;
+        }
+    }
+    if (!data || typeof data !== 'object') return;
+    const action = data.action;
+    if (action === 'join') handleJoin(client, data);
+    else if (action === 'move') handleMove(client, data);
+    else if (action === 'next_round') handleNextRound(client);
+    else if (action === 'reset_match') handleResetMatch(client);
 });

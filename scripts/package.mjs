@@ -3,11 +3,12 @@
 // Packages apps in midl-plugins/apps/ into zips/ and generates root index.json / index.min.json
 // Automatically detects environment: Dev Mode locally (keeps index.json untouched) vs CI Mode in GitHub Actions.
 
-import { execSync } from 'child_process';
+import { execSync, execFileSync } from 'child_process';
 import { createHash } from 'crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs';
 import { join, resolve } from 'path';
 import { fileURLToPath } from 'url';
+import { parsePluginManifest } from './parsers/index.mjs';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT_DIR = resolve(__dirname, '..');
@@ -84,7 +85,10 @@ function getZipUrl(zipName) {
     if (RELEASE_TAG) {
         return `https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}/${zipName}`;
     }
-    return `https://raw.githubusercontent.com/${GITHUB_REPO}/main/zips/${zipName}`;
+    if (isDev) {
+        return `http://localhost:3000/zips/${zipName}`;
+    }
+    throw new Error(`RELEASE_TAG environment variable is required to generate release zipUrl for ${zipName}.`);
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -104,71 +108,11 @@ function sha256OfFile(filePath) {
 }
 
 function zipDir(srcDir, destZip) {
-    execSync(
-        `zip -r "${destZip}" . -x "*.DS_Store" -x "__MACOSX/*" -x "node_modules/*" -x ".git/*" -x ".turbo/*"`,
+    execFileSync(
+        'zip',
+        ['-r', destZip, '.', '-x', '*.DS_Store', '-x', '__MACOSX/*', '-x', 'node_modules/*', '-x', '.git/*', '-x', '.turbo/*'],
         { cwd: srcDir, stdio: 'inherit' }
     );
-}
-
-const SEMVER_REGEX = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
-const SDK_VERSION_REGEX = /^(?:[~^>=<]*)\s*(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[\w.]+)?(?:\+[\w.]+)?$/;
-
-/**
- * Validates a plugin's manifest.json against required system schema rules:
- * Required: id, name, version (valid SemVer), minSdkVersion / sdkVersion, author
- * Optional: package.json sync check if present
- * Forbidden: source (must be removed from manifest.json)
- */
-function validateManifest(manifest, appName, appDir) {
-    const errors = [];
-
-    if (!manifest) {
-        errors.push(`Missing or unparseable manifest.json in apps/${appName}`);
-        return errors;
-    }
-
-    if (!manifest.id || typeof manifest.id !== 'string' || !manifest.id.trim()) {
-        errors.push(`apps/${appName}/manifest.json must specify a non-empty string "id"`);
-    }
-
-    if (!manifest.name || typeof manifest.name !== 'string' || !manifest.name.trim()) {
-        errors.push(`apps/${appName}/manifest.json must specify a non-empty string "name"`);
-    }
-
-    if (!manifest.version || typeof manifest.version !== 'string' || !manifest.version.trim()) {
-        errors.push(`apps/${appName}/manifest.json must specify a non-empty string "version"`);
-    } else if (!SEMVER_REGEX.test(manifest.version.trim())) {
-        errors.push(`apps/${appName}/manifest.json "version" ("${manifest.version}") is not a valid Semantic Version (e.g. 1.0.0)`);
-    }
-
-    const sdkVersionStr = manifest.minSdkVersion || manifest.sdkVersion;
-    if (!sdkVersionStr || typeof sdkVersionStr !== 'string' || !sdkVersionStr.trim()) {
-        errors.push(`apps/${appName}/manifest.json must specify a non-empty "minSdkVersion" (or "sdkVersion") e.g. "1.0.0" or ">=1.0.0"`);
-    } else if (!SDK_VERSION_REGEX.test(sdkVersionStr.trim())) {
-        errors.push(`apps/${appName}/manifest.json "minSdkVersion" ("${sdkVersionStr}") must be a valid version or range (e.g. 1.0.0, >=1.0.0)`);
-    }
-
-    if (!manifest.author || (typeof manifest.author !== 'string' && typeof manifest.author !== 'object')) {
-        errors.push(`apps/${appName}/manifest.json must specify a required "author" field`);
-    }
-
-    if ('source' in manifest) {
-        errors.push(`apps/${appName}/manifest.json must NOT contain forbidden "source" property (source origin is tracked by repository index)`);
-    }
-
-    if (appDir) {
-        const appPkgPath = join(appDir, 'package.json');
-        if (existsSync(appPkgPath)) {
-            const appPkg = readJsonFile(appPkgPath);
-            if (appPkg && appPkg.version && appPkg.version.trim() !== manifest.version.trim()) {
-                errors.push(
-                    `apps/${appName}/package.json version ("${appPkg.version}") does not match manifest.json version ("${manifest.version}")`
-                );
-            }
-        }
-    }
-
-    return errors;
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -227,30 +171,23 @@ for (const appName of appDirs) {
     log(`──────────────────────────────────────────`);
     log(`📂 Processing: ${appName}`);
 
-    let manifest;
+    let rawManifest;
     try {
-        manifest = readJsonFile(join(appDir, 'manifest.json'));
+        rawManifest = readJsonFile(join(appDir, 'manifest.json'));
     } catch (err) {
         logError(err.message);
         hasValidationFailures = true;
         continue;
     }
 
-    const validationErrors = validateManifest(manifest, appName, appDir);
-    if (validationErrors.length > 0) {
+    const { errors: validationErrors, plugin: parsedPlugin } = parsePluginManifest(rawManifest, appName, appDir);
+    if (validationErrors.length > 0 || !parsedPlugin) {
         validationErrors.forEach((err) => logError(err));
         hasValidationFailures = true;
         continue;
     }
 
-    const id = manifest.id.trim();
-    const name = manifest.name.trim();
-    const version = manifest.version.trim();
-    const minSdkVersion = (manifest.minSdkVersion || manifest.sdkVersion || '').trim();
-    const description = manifest.description || '';
-    const rawAuthor = manifest.author;
-    const author = typeof rawAuthor === 'object' && rawAuthor !== null ? (rawAuthor.name || '') : String(rawAuthor).trim();
-    const tags = Array.isArray(manifest.tags) ? manifest.tags : [];
+    const { id, version, dir = '.' } = parsedPlugin;
 
     processedIds.add(id);
 
@@ -263,16 +200,11 @@ for (const appName of appDirs) {
         log(`   🔗 zipUrl: ${existingEntry.zipUrl}`);
 
         const pluginObj = {
-            id,
-            name,
-            version,
-            minSdkVersion,
-            author,
+            ...parsedPlugin,
             zipUrl: existingEntry.zipUrl,
+            sha256: existingEntry.sha256
         };
-        if (description) pluginObj.description = description;
-        if (tags.length > 0) pluginObj.tags = tags;
-        if (existingEntry.sha256) pluginObj.sha256 = existingEntry.sha256;
+        delete pluginObj.dir;
 
         plugins.push(pluginObj);
         skippedCount++;
@@ -280,7 +212,6 @@ for (const appName of appDirs) {
         continue;
     }
 
-    const dir = manifest.dir || '.';
     const srcDir = resolve(appDir, dir);
 
     if (!existsSync(srcDir)) {
@@ -309,17 +240,11 @@ for (const appName of appDirs) {
     log(`   🔗 zipUrl: ${zipUrl}`);
 
     const pluginObj = {
-        id,
-        name,
-        version,
-        minSdkVersion,
-        author,
+        ...parsedPlugin,
         zipUrl,
+        sha256: zipSha256
     };
-
-    if (description) pluginObj.description = description;
-    if (tags.length > 0) pluginObj.tags = tags;
-    if (zipSha256) pluginObj.sha256 = zipSha256;
+    delete pluginObj.dir;
 
     plugins.push(pluginObj);
     newlyPackagedCount++;
