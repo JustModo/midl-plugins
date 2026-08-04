@@ -10,6 +10,7 @@ let gameState = {
     players: { X: null, O: null },
     scores: { X: 0, O: 0 },
     board: Array(9).fill(null),
+    moves: { X: [], O: [] },
     currentTurn: 'X',
     status: 'waiting',
     roundWinner: null,
@@ -30,9 +31,6 @@ function checkWinner(board) {
             return board[a];
         }
     }
-    if (board.every(cell => cell !== null)) {
-        return 'draw';
-    }
     return null;
 }
 
@@ -41,6 +39,7 @@ function resetMatch() {
         players: { X: null, O: null },
         scores: { X: 0, O: 0 },
         board: Array(9).fill(null),
+        moves: { X: [], O: [] },
         currentTurn: 'X',
         status: 'waiting',
         roundWinner: null,
@@ -51,6 +50,7 @@ function resetMatch() {
 
 function resetRound() {
     gameState.board = Array(9).fill(null);
+    gameState.moves = { X: [], O: [] };
     gameState.currentTurn = gameState.roundWinner === 'X' ? 'O' : 'X';
     gameState.roundWinner = null;
     gameState.status = (gameState.players.X && gameState.players.O) ? 'playing' : 'waiting';
@@ -112,10 +112,21 @@ function handleMove(client, payload) {
     if (typeof index !== 'number' || index < 0 || index > 8 || gameState.board[index] !== null) return;
 
     const symbol = gameState.currentTurn;
+
+    if (!gameState.moves) {
+        gameState.moves = { X: [], O: [] };
+    }
+    if (!gameState.moves[symbol]) {
+        gameState.moves[symbol] = [];
+    }
+
+    // Place the new mark
     gameState.board[index] = symbol;
 
+    // Check if this move completes a winning line BEFORE removing the oldest mark
     const winner = checkWinner(gameState.board);
-    if (winner) {
+    if (winner && winner !== 'draw') {
+        gameState.moves[symbol].push(index);
         gameState.roundWinner = winner;
         if (winner === 'X' || winner === 'O') {
             gameState.scores[winner] += 1;
@@ -128,6 +139,12 @@ function handleMove(client, payload) {
         }
         gameState.status = 'round_over';
     } else {
+        // If no win, remove the oldest mark if player already has 3 marks
+        if (gameState.moves[symbol].length >= 3) {
+            const oldestIndex = gameState.moves[symbol].shift();
+            gameState.board[oldestIndex] = null;
+        }
+        gameState.moves[symbol].push(index);
         gameState.currentTurn = gameState.currentTurn === 'X' ? 'O' : 'X';
     }
     broadcastState();

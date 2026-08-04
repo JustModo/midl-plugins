@@ -222,6 +222,25 @@
             opacity: 0.7;
         }
 
+        .cell.fading-stage-3 {
+            opacity: 0.35;
+            animation: pulseFade 1.5s infinite ease-in-out;
+            border: 1px dashed #ff4d4d;
+        }
+
+        .cell.fading-stage-2 {
+            opacity: 0.7;
+        }
+
+        .cell.fading-stage-1 {
+            opacity: 1.0;
+        }
+
+        @keyframes pulseFade {
+            0%, 100% { opacity: 0.35; transform: scale(1); }
+            50% { opacity: 0.15; transform: scale(0.96); }
+        }
+
         .controls {
             display: flex;
             gap: 12px;
@@ -236,7 +255,7 @@
     <div class="container">
         <div class="header">
             <div class="title">TIC-TAC-TOE</div>
-            <div class="target-rule">FIRST TO 3 WINS</div>
+            <div class="target-rule">ENDLESS MODE • MAX 3 MARKS</div>
         </div>
 
         <!-- Join / Lobby Screen -->
@@ -423,12 +442,31 @@
 
             // Render Grid
             const isMyTurn = isJoined && status === 'playing' && currentState.currentTurn === mySymbol;
+            const moves = currentState.moves || { X: [], O: [] };
+
             cells.forEach((cell, idx) => {
                 const val = board[idx];
                 cell.textContent = val || '';
                 cell.className = 'cell';
                 if (val === 'X') cell.classList.add('x');
                 if (val === 'O') cell.classList.add('o');
+
+                if (val !== null) {
+                    const playerMoves = moves[val] || [];
+                    const moveOrder = playerMoves.indexOf(idx);
+                    const totalMoves = playerMoves.length;
+
+                    if (totalMoves === 3) {
+                        if (moveOrder === 0) cell.classList.add('fading-stage-3');
+                        else if (moveOrder === 1) cell.classList.add('fading-stage-2');
+                        else cell.classList.add('fading-stage-1');
+                    } else if (totalMoves === 2) {
+                        if (moveOrder === 0) cell.classList.add('fading-stage-2');
+                        else cell.classList.add('fading-stage-1');
+                    } else {
+                        cell.classList.add('fading-stage-1');
+                    }
+                }
 
                 if (!isMyTurn || val !== null) {
                     cell.classList.add('disabled');
