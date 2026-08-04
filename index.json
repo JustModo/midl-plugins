@@ -21,16 +21,16 @@
       "schemaVersion": 1,
       "id": "tictactoe",
       "name": "Tic-Tac-Toe",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "minSdkVersion": "1.0.0",
       "author": "JustModo",
-      "description": "2-Player Tic-Tac-Toe game with score tracking and match victory (First to 3 wins)",
+      "description": "2-Player Endless Tic-Tac-Toe game with disappearing marks to eliminate draws (First to 3 wins)",
       "tags": [
         "game",
         "multiplayer"
       ],
-      "zipUrl": "https://github.com/JustModo/midl-plugins/releases/download/v2026.08.04/tictactoe-1.0.0.zip",
-      "sha256": "9ab3315fa76c5494f6203c81696842c2ea9996a025cb4c310d6e6e876922f1db"
+      "zipUrl": "https://github.com/JustModo/midl-plugins/releases/download/v2026.08.04/tictactoe-1.1.0.zip",
+      "sha256": "cf9681f8d46dc957ac3f056db338524454f171e36db401bc5451f220bb4a204d"
     }
   ]
 }
